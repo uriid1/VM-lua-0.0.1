@@ -1,0 +1,49 @@
+#!/usr/bin/env lua
+local vm = require('src.core')
+local lexer = require('src.lexer')
+local fsVm = require('src.fs-vm')
+local build = require('src.build')
+local binToInstructions = require('src.bin-to-instructions')
+
+if not arg[1] then
+  os.exit(1)
+end
+
+if arg[1] == 'run' then
+  local filePath = arg[2]
+
+  if not filePath then
+    error()
+  end
+
+  local instructions
+
+  -- Запускаем бинарный файл
+  if fsVm.isBin(filePath) then
+    instructions = binToInstructions(filePath)
+  else
+    local program = fsVm.readFile(filePath)
+
+    instructions = lexer(program)
+  end
+
+  vm.processLabels(instructions)
+  vm.loadProgram(instructions)
+  vm.run()
+
+elseif arg[1] == 'build' then
+  local input = arg[2]
+  local output = arg[3]
+
+  if not input then
+    error()
+  elseif not output then
+    error()
+  end
+
+  local program = fsVm.readFile(input)
+  local instructions = lexer(program, { bin = true })
+  local compiled = build(instructions)
+
+  fsVm.writeBin(output, compiled)
+end
